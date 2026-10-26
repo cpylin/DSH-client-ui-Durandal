@@ -16,16 +16,22 @@ DeepSeek Harness Web GUI 的客户端皮肤：以《崩坏3》幽兰黛尔（比
 ## 安装 / 卸载
 
 ```bash
-node tools/build.mjs      # 内联立绘，生成 lib/client.js
-node tools/verify.mjs     # 全部门禁：安全 lint + 假 DOM 冒烟 + 设计断言 + 打包断言（0 失败才放行）
-node tools/install.mjs    # 装进 desktop profile（幂等、自动备份）
+node tools/build.mjs        # 内联立绘，生成 lib/client.js
+node tools/verify.mjs       # 皮肤门禁：安全 lint + 假 DOM 冒烟 + 设计断言 + 打包断言
+node tools/verify-host.mjs  # 桌宠门禁：载荷完整性 + 宿主半边 + 配置/BOM
+node tools/test-pet.mjs     # 进程级实测：拉起 Pet.exe，确认常驻，再调用清理函数确认退出
+node tools/install.mjs      # 装进 desktop profile（幂等、自动备份）
 # 然后重启 DeepSeek Harness
-node tools/uninstall.mjs  # 彻底卸载
+node tools/uninstall.mjs    # 彻底卸载
 ```
+
+`node tools/test-pet.mjs` 需要先退出 Harness（桌宠是单实例，已有一只时测不出 spawn/stop 的真实路径）。
 
 `desktop` profile 由 Electron 独占，`dsh plugin --profile desktop add` 会被 CLI 拒绝，因此 `install.mjs` 手工完成等价三步：复制到 `$DSH_HOME/plugins/dsh-client-ui-durandal`（**只装运行产物**：`lib/`、`package.json`、`cordis.patch.yml`、`README.md`）→ 写入 profile 依赖并建立 `node_modules` 链接 → 把包名加进 profile 的 `dsh.profile.bundles`（先备份）。
 
 **它是一个组合包（bundle），不是一个裸依赖**。`package.json` 声明 `dsh.bundle.patch: "./cordis.patch.yml"`，app-boot 在组合 loader 树时按 `dsh.profile.bundles` 的顺序逐个应用每个组合包自己的补丁层，所以**插入 loader 条目的是包自带的 `cordis.patch.yml`**，profile 只负责"选中"它。这个区别是可观察的：应用侧栏的**插件**页把 profile 的**组合包**列在**已安装**分组下——只装进 `node_modules` 而没被选中的依赖**有意不列出**。所以旧版把 `- insert:` 手写进 profile patch 的做法既进不了插件页，又会在迁到 bundle 后重复插入同一 id；`install.mjs` 会先清掉那段遗留块再选中组合包。
+
+**解析目标必须是完整包**：`node_modules/dsh-client-ui-durandal` 必须是指向 `$DSH_HOME/plugins/dsh-client-ui-durandal` 的目录链接。若它是 pnpm 早期生成的实体副本，宿主半边其实会正常运行，但副本里没有后来加入的 `lib/pet`，桌宠就永远起不来（而且日志也写在那个不存在的目录里，看起来像“宿主半边没挂载”）。`install.mjs` 会检测并把它换成链接，安装末尾还会确认“解析到的包确实带 `lib/pet/bin/Pet.exe`”。同时会去掉 profile `package.json` / `cordis.patch.yml` 的 UTF-8 BOM——Harness 启动时对 profile 清单用的是裸 `JSON.parse`，BOM 会让整个应用直接起不来。
 
 **入口 id 的硬性约定**：宿主把 bundle 挂在 `/plugins/<entry id>/client.js`，随后要求 bundle 注册同一个 id，因此
 `cordis.patch.yml` 的 `id` ＝ `__ModuleLoader__.load({ id })` ＝ `package.json` 的 `name`（`verify.mjs` 会校验）。
@@ -130,7 +136,9 @@ node tools/uninstall.mjs  # 彻底卸载
 
 | 工具 | 作用 |
 | --- | --- |
-| `tools/verify.mjs` | 全部门禁（**99 项，0 失败才放行**）：安全 lint（层叠/指针/命中测试/根与窗体/`!important` 用途/重复声明/**规则结构完整性**/**产物里不得出现 `NaN`/`undefined`**）+ 假 DOM 冒烟（激活、面板渲染、逃生 API、自检三条判定路径、拆除）+ 设计断言（**零薄膜**、侧栏厚度、实底浮层、**配色谱系极性（40 个 token）**、纹章孪生、铭牌宿主、**空态已除 / 输入框沉底机制 / 提问与正文的实底范围（含"折叠过程行不得吃实底"）**、预览工具 token 副本无漂移） |
+| `tools/verify.mjs` | 皮肤门禁（**101 项，0 失败才放行**）：安全 lint（层叠/指针/命中测试/根与窗体/`!important` 用途/重复声明/**规则结构完整性**/**产物里不得出现 `NaN`/`undefined`**）+ 假 DOM 冒烟（激活、面板渲染、逃生 API、自检三条判定路径、拆除）+ 设计断言（**零薄膜**、侧栏厚度、实底浮层、**配色谱系极性（40 个 token）**、纹章孪生、铭牌宿主、**空态已除 / 输入框沉底机制 / 提问与正文的实底范围（含"折叠过程行不得吃实底"）**、预览工具 token 副本无漂移） |
+| `tools/verify-host.mjs` | 桌宠门禁（30 项）：载荷必须随包（`bin/*.exe`、`pet.png`、`config.json`、`src/`）、精灵清单指向真实文件、配置可解析且无 BOM、宿主半边导出/平台守卫/`ctx.effect` 形状/日志回退/退出兜底、打包清单与“没有分包工作区”断言 |
+| `tools/test-pet.mjs` | 进程级实测（需先退出 Harness）：按 Loader 的方式 import 宿主半边，用符合 Cordis 语义的 `ctx.effect` 调用 `apply()`；断言 Pet.exe 出现且常驻、effect 返回了清理函数、调用清理函数后进程消失。它专门盯“把清理函数直接传给 `ctx.effect` 导致刚拉起就被杀掉”这个回归 |
 | `tools/mock-sidebar.mjs` | 把侧栏结构 + **真实 CSS**（从 `src/skin.js` 切片求值）+ DSH 的内联 token 写法渲染成 `art/_mock.html`（`--dark` 出深色版），页面内自带 computed-style 探针——**CSS 静默失效会显示成文字，而不是被当成设计问题**。纹章/饰带/铭文/分隔饰也由源码里同一批生成函数求值得到，绝不手抄。**它只渲染侧栏**，空态/输入框/对话流那部分它预览不了，只能实机验（见下） |
 | `tools/cdp-verify.mjs` | **实机验证**——`verify.mjs` 的假 DOM 不渲染应用，所以凡是几何（空态是否真没了、输入框是否真在底部、立绘是否真变亮）它一条都验不了，这一趟才是那些改动的真门。要求 app 以 `--remote-debugging-port=9222` 启动（**单实例应用，必须先退出正在跑的实例**，否则第二个进程只会把第一个顶到前台、且不带端口）。它自己会：固定视口（否则 `background-size:cover` 会让两次截图不是同一批像素）、把 veil 归零、逐个把三层膜装回去拍"改前"、断言空态与输入框位置、走一遍对话流子树的绘制、展开思考折叠验证正文底色仍在（**答案在展开前按 `[data-turn-process-answer]` 认出来，展开后按 `data-chat-node-key` 找回来**——按"每个可见 assistant-step 都得有底"去验是错的，展开后多出来的那些本来就该是透明的） |
 | `tools/sample-pixels.py` | 从**渲染出来的截图**量像素（PIL）。这是"零薄膜"的独立第二口径：`verify.mjs` 读的是 token **值**，它读的是窗口**实际画出来的像素**，两者可以不一致——token 对了但别处又盖了一层，正是立绘在"薄"值上暗了三版的原因。**看 `spread`（逐像素亮度的标准差），不要只看 luma**：亮色的膜是白的，摘掉它 luma 下降而立绘更艳，只读亮度会得出反向结论；膜无论什么颜色都只会压平动态范围 |
@@ -164,3 +172,17 @@ node tools/uninstall.mjs  # 彻底卸载
 - **可审计/可重建**：`lib/pet/src/*.cs` 与 `lib/pet/build.sh` 随包提供，桌宠文档见 `lib/pet/README.md`，美术与授权见 `lib/pet/NOTICE.md`、`lib/pet/ASSET-USAGE.md`。
 
 > 安装提示：`lib/pet` 必须完整随仓库分发（含 `bin/*.exe` 与 `assets/pet.png`），否则 GitHub 直装会缺文件；`node tools/verify-host.mjs` 会在安装前拦住这种缺漏。
+
+## 故障排查
+
+**Harness 启动即退，崩溃日志里是 `Unexpected token '﻿'`（不可见的 U+FEFF）**
+profile 的 `package.json` 被写入了 UTF-8 BOM（PowerShell 5 的 `Out-File` / `Set-Content` 默认就这样），而 Harness 用裸 `JSON.parse` 读它。重跑 `node tools/install.mjs` 会去掉 BOM；也可以把文件另存为“UTF-8 无 BOM”。**不要用 PowerShell 直接改 profile 清单**，除非显式写成无 BOM。
+
+**皮肤在，但桌宠不出现**
+先看 `$DSH_HOME/plugins/dsh-client-ui-durandal/lib/pet/.host.log`：
+- 没有任何新行：宿主半边没有被加载，检查 profile 的 `dsh.profile.bundles` 是否选中了本包；
+- `exeExists=false` 或 `apply() -> skipped`：`lib/pet` 缺失。最常见的来源是 `node_modules/dsh-client-ui-durandal` 是旧实体副本而不是指向安装目录的链接——重跑 `node tools/install.mjs`，它会换链接并验证解析到的包带 `lib/pet/bin/Pet.exe`；
+- 日志出现在 `%TEMP%\dsh-client-ui-durandal.host.log`：`lib/pet` 不存在，同上；
+- `spawn ok` 紧接着 `stop`：`ctx.effect` 的语义被写反了（回调会被立即执行，返回值才是清理函数）。本仓库已修复，用 `node tools/test-pet.mjs` 回归。
+
+**桌宠是单实例的**：旧进程没退干净时，新的 spawn 只会把已有那只顶到前台；测试或排查前先确认 `tasklist` 里没有 `Pet.exe`。

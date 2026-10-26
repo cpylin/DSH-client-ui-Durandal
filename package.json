@@ -1,6 +1,6 @@
 {
   "name": "dsh-client-ui-durandal",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "private": true,
   "description": "DSH plugin: Durandal (Honkai Impact 3rd) skin - royal-blue/gold palette, character-art chat background, gated CSS, a click-through self test - plus the bundled Q-version Durandal desktop pet, launched with Harness and retired with it.",
   "type": "module",
@@ -32,7 +32,8 @@
   },
   "scripts": {
     "build": "node tools/build.mjs",
-    "check": "node tools/verify.mjs"
+    "check": "node tools/verify.mjs && node tools/verify-host.mjs",
+    "test:pet": "node tools/test-pet.mjs"
   },
   "peerDependencies": {
     "react": "^18.2.0"

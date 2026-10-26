@@ -32,17 +32,22 @@ const ENTRY_ID = 'dsh-client-ui-durandal';
 
 const act = (msg) => console.log(dryRun ? `[dry-run] ${msg}` : msg);
 
+/** Read text/JSON without a leading BOM (a BOM would otherwise crash JSON.parse). */
+const readText = (file) => fs.readFileSync(file, 'utf8').replace(/^\uFEFF/, '');
+const readJson = (file) => JSON.parse(readText(file));
+const writeText = (file, text) => fs.writeFileSync(file, text.replace(/^\uFEFF/, ''));
+
 // 1. legacy loader entry out of cordis.patch.yml
 const patchFile = path.join(profileDir, 'cordis.patch.yml');
 if (fs.existsSync(patchFile)) {
-  const before = fs.readFileSync(patchFile, 'utf8');
+  const before = readText(patchFile);
   const { text: after, dropped } = stripLegacyInsert(before, { pkg: PKG, entryId: ENTRY_ID });
   if (dropped) {
     act('remove the legacy loader entry from cordis.patch.yml');
     if (!dryRun) {
       const stamp = new Date().toISOString().replace(/[:.]/g, '-');
       fs.copyFileSync(patchFile, `${patchFile}.bak-${stamp}`);
-      fs.writeFileSync(patchFile, after);
+      writeText(patchFile, after);
     }
   } else {
     console.log('cordis.patch.yml had no entry for this plugin');
@@ -52,7 +57,7 @@ if (fs.existsSync(patchFile)) {
 // 2. bundle selection + profile dependency out
 const pkgFile = path.join(profileDir, 'package.json');
 if (fs.existsSync(pkgFile)) {
-  const pkg = JSON.parse(fs.readFileSync(pkgFile, 'utf8'));
+  const pkg = readJson(pkgFile);
   const bundles = pkg.dsh?.profile?.bundles;
   const deselected = Array.isArray(bundles) && bundles.includes(PKG);
   const depended = Boolean(pkg.dependencies && pkg.dependencies[PKG]);
@@ -77,9 +82,15 @@ if (fs.existsSync(pkgFile)) {
 
 // 3. link + installed copy
 const linkPath = path.join(profileDir, 'node_modules', PKG);
-if (fs.existsSync(linkPath)) {
+const linkStat = fs.lstatSync(linkPath, { throwIfNoEntry: false });
+if (linkStat !== undefined) {
   act(`remove ${linkPath}`);
-  if (!dryRun) fs.rmSync(linkPath, { recursive: true, force: true });
+  // A junction must be unlinked, not recursively removed: rm() on the wrong shape could walk
+  // into the installed copy it points at.
+  if (!dryRun) {
+    if (linkStat.isSymbolicLink()) fs.unlinkSync(linkPath);
+    else fs.rmSync(linkPath, { recursive: true, force: true });
+  }
 }
 if (!keepFiles && fs.existsSync(pluginDest)) {
   act(`delete the installed copy ${pluginDest}`);

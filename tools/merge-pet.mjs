@@ -140,11 +140,11 @@ notes.push('wrote .gitignore (pet payload explicitly kept)');
 // ---- package.json: name/description/repo/version/files
 const pkgFile = path.join(plugin, 'package.json');
 const pkg = JSON.parse(fs.readFileSync(pkgFile, 'utf8'));
-pkg.version = '1.1.0';
+pkg.version = '1.1.1';
 pkg.description = 'DSH plugin: Durandal (Honkai Impact 3rd) skin - royal-blue/gold palette, character-art chat background, gated CSS, a click-through self test - plus the bundled Q-version Durandal desktop pet, launched with Harness and retired with it.';
-pkg.repository = { type: 'git', url: 'git+https://github.com/cpylin/Durandal-desktop-pet.git' };
-pkg.homepage = 'https://github.com/cpylin/Durandal-desktop-pet#readme';
-pkg.bugs = { url: 'https://github.com/cpylin/Durandal-desktop-pet/issues' };
+pkg.repository = { type: 'git', url: 'git+https://github.com/cpylin/dsh-client-ui-durandal.git' };
+pkg.homepage = 'https://github.com/cpylin/dsh-client-ui-durandal#readme';
+pkg.bugs = { url: 'https://github.com/cpylin/dsh-client-ui-durandal/issues' };
 pkg.keywords = ['dsh', 'dsh-client-plugin', 'skin', 'theme', 'honkai-impact-3rd', 'durandal', 'desktop-pet', 'windows'];
 if (!pkg.files.includes('lib/pet')) pkg.files.push('lib/pet');
 fs.writeFileSync(pkgFile, JSON.stringify(pkg, null, 2) + '\n');

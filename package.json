@@ -56,10 +56,10 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/cpylin/Durandal-desktop-pet.git"
+    "url": "git+https://github.com/cpylin/dsh-client-ui-durandal.git"
   },
-  "homepage": "https://github.com/cpylin/Durandal-desktop-pet#readme",
+  "homepage": "https://github.com/cpylin/dsh-client-ui-durandal#readme",
   "bugs": {
-    "url": "https://github.com/cpylin/Durandal-desktop-pet/issues"
+    "url": "https://github.com/cpylin/dsh-client-ui-durandal/issues"
   }
 }

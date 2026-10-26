@@ -150,3 +150,17 @@ node tools/uninstall.mjs  # 彻底卸载
 ## 许可
 
 插件代码 MIT；美术素材见上。
+
+---
+
+## 随 Harness 启动的 Q 版桌宠
+
+插件内含 Q 版幽兰黛尔桌宠（原生 Windows 程序，源码随包）：lib/pet/。
+
+- **启动**：DSH 加载本插件时由宿主半边（lib/index.js）自动拉起；插件卸载或 DSH 退出时自动收回。
+- **关闭**：把 lib/pet/config.json 的 `autoStart` 改为 `false`，或从桌宠自身菜单退出。
+- **与终端无关**：原项目的 Claude/终端 hooks、开机自启、快捷方式均未随包分发；桌宠只与 Harness 同生共死。
+- **非 Windows**：自动跳过启动，皮肤功能不受影响。
+- **可审计/可重建**：`lib/pet/src/*.cs` 与 `lib/pet/build.sh` 随包提供，桌宠文档见 `lib/pet/README.md`，美术与授权见 `lib/pet/NOTICE.md`、`lib/pet/ASSET-USAGE.md`。
+
+> 安装提示：`lib/pet` 必须完整随仓库分发（含 `bin/*.exe` 与 `assets/pet.png`），否则 GitHub 直装会缺文件；`node tools/verify-host.mjs` 会在安装前拦住这种缺漏。

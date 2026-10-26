@@ -1,0 +1,16 @@
+# dsh-client-ui-durandal BUNDLE patch — this file is the bundle's own patch layer, applied
+# by app-boot once the package is named in the profile's `dsh.profile.bundles`
+# (package.json: "dsh": { "bundle": { "patch": "./cordis.patch.yml" } }).
+#
+# The entry id MUST equal the package name: the client-modules host serves the bundle at
+# /plugins/<entry id>/client.js and then requires the bundle to register exactly that id
+# ("bundle ... loaded without registering <id>"). The bundle's
+# window.__ModuleLoader__.load({ id: "dsh-client-ui-durandal" }) matches this line.
+#
+# Because this row is inserted by the bundle layer, it must NOT also be inserted by the
+# profile's cordis.patch.yml — two inserts of one id is a duplicate row. The profile only
+# selects the bundle (tools/install.mjs writes that selection) and may override the row
+# (a `disabled:` override is what the plugin page's per-row switch writes).
+- insert:
+    - id: dsh-client-ui-durandal
+      name: 'dsh-client-ui-durandal'

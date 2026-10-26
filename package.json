@@ -1,0 +1,64 @@
+{
+  "name": "dsh-client-ui-durandal",
+  "version": "1.1.0",
+  "private": true,
+  "description": "DSH plugin: Durandal (Honkai Impact 3rd) skin - royal-blue/gold palette, character-art chat background, gated CSS, a click-through self test - plus the bundled Q-version Durandal desktop pet, launched with Harness and retired with it.",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": {
+      "default": "./lib/index.js"
+    },
+    "./client": {
+      "default": "./lib/client.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/client.js",
+    "cordis.patch.yml",
+    "README.md",
+    "lib/pet"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true
+    }
+  },
+  "scripts": {
+    "build": "node tools/build.mjs",
+    "check": "node tools/verify.mjs"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
+  "keywords": [
+    "dsh",
+    "dsh-client-plugin",
+    "skin",
+    "theme",
+    "honkai-impact-3rd",
+    "durandal",
+    "desktop-pet",
+    "windows"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cpylin/Durandal-desktop-pet.git"
+  },
+  "homepage": "https://github.com/cpylin/Durandal-desktop-pet#readme",
+  "bugs": {
+    "url": "https://github.com/cpylin/Durandal-desktop-pet/issues"
+  }
+}

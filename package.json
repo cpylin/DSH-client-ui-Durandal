@@ -56,10 +56,10 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/cpylin/dsh-client-ui-durandal.git"
+    "url": "git+https://github.com/cpylin/DSH-client-ui-Durandal.git"
   },
-  "homepage": "https://github.com/cpylin/dsh-client-ui-durandal#readme",
+  "homepage": "https://github.com/cpylin/DSH-client-ui-Durandal#readme",
   "bugs": {
-    "url": "https://github.com/cpylin/dsh-client-ui-durandal/issues"
+    "url": "https://github.com/cpylin/DSH-client-ui-Durandal/issues"
   }
 }

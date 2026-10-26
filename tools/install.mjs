@@ -19,17 +19,23 @@
  * cordis.patch.yml: that would be a second insert of the same id. Older installs did exactly
  * that, so step 3 first strips that legacy block.
  *
- * usage: node tools/install.mjs [--profile desktop] [--dry-run]
+ * Close DeepSeek Harness before installing. The app watches its plugin files: rewriting one
+ * while it runs disposes the mounted plugin (the pet is retired) without necessarily mounting
+ * the new copy. `--force` skips that guard, for the rare case where only metadata changed.
+ *
+ * usage: node tools/install.mjs [--profile desktop] [--dry-run] [--force]
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
+import { execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { stripLegacyInsert } from './legacy-entry.mjs';
 
 const here = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const args = process.argv.slice(2);
 const dryRun = args.includes('--dry-run');
+const force = args.includes('--force');
 const profileArg = args.indexOf('--profile');
 const profileName = profileArg >= 0 ? args[profileArg + 1] : (process.env.DSH_PROFILE || 'desktop');
 
@@ -53,11 +59,19 @@ function copyTree(from, to, skip = new Set(), rel = '') {
     const itemRel = rel ? `${rel}/${item.name}` : item.name;
     if (item.isDirectory()) copyTree(src, dst, skip, itemRel);
     else if (!dryRun) {
+      // Logs are runtime output, not payload: copying the workspace's .host.log over the
+      // installed one would erase the evidence of what the last launch actually did.
+      if (/\.log$/i.test(item.name)) continue;
       // pet/config.json is runtime state (position, scale, autoStart). Do not reset it on a
       // reinstall; the repository copy is only the default for a first install.
       if (itemRel === 'pet/config.json' && fs.existsSync(dst)) {
         log(`  keep existing runtime config: ${dst}`);
         continue;
+      }
+      // Leave identical files alone: their mtime drives the app's live reload, and a needless
+      // rewrite disposes the mounted plugin (retiring the pet) even when nothing changed.
+      if (fs.existsSync(dst)) {
+        try { if (fs.readFileSync(src).equals(fs.readFileSync(dst))) continue; } catch { /* fall through to copy */ }
       }
       try {
         fs.copyFileSync(src, dst);
@@ -102,6 +116,17 @@ function realpathOrNull(p) {
   try { return fs.realpathSync(p); } catch { return null; }
 }
 
+/** Whether the desktop app is running (its Host rewrites plugin files as a live reload). */
+function harnessRunning() {
+  if (process.platform !== 'win32') return false;
+  try {
+    const out = execSync('tasklist /FI "IMAGENAME eq DeepSeek Harness.exe" /NH', { stdio: ['ignore', 'pipe', 'ignore'] }).toString();
+    return /DeepSeek Harness\.exe/i.test(out);
+  } catch {
+    return false;
+  }
+}
+
 /** Drop a top-level `- id:` entry (and its comment header) naming one package. */
 function stripPackageEntry(text, packageName) {
   const lines = text.split('\n');
@@ -130,6 +155,12 @@ function stripPackageEntry(text, packageName) {
 // ---------------------------------------------------------------- 0. sanity
 if (!fs.existsSync(profileDir)) {
   console.error(`profile not found: ${profileDir}`);
+  process.exit(1);
+}
+if (!dryRun && !force && harnessRunning()) {
+  console.error('DeepSeek Harness is running. Close it (including the tray icon) and rerun.');
+  console.error('Rewriting plugin files while it runs disposes the mounted plugin and retires the pet;');
+  console.error('the running copy is not reloaded from the new files. Use --force to override.');
   process.exit(1);
 }
 const bundle = path.join(here, 'lib', 'client.js');

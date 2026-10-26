@@ -27,6 +27,8 @@ node tools/uninstall.mjs    # 彻底卸载
 
 `node tools/test-pet.mjs` 需要先退出 Harness（桌宠是单实例，已有一只时测不出 spawn/stop 的真实路径）。
 
+`node tools/install.mjs` 也要求先退出 Harness（含托盘图标）：应用会监听插件文件，运行中重写文件会让已挂载的插件被卸载、桌宠被收回，而且不保证重新挂载。脚本会检测到 Harness 正在运行并直接拒绝；只有确知改动不需要重新加载时才用 `--force`。内容相同的文件会被跳过，`.host.log` 等运行时日志不会被复制。
+
 `desktop` profile 由 Electron 独占，`dsh plugin --profile desktop add` 会被 CLI 拒绝，因此 `install.mjs` 手工完成等价三步：复制到 `$DSH_HOME/plugins/dsh-client-ui-durandal`（**只装运行产物**：`lib/`、`package.json`、`cordis.patch.yml`、`README.md`）→ 写入 profile 依赖并建立 `node_modules` 链接 → 把包名加进 profile 的 `dsh.profile.bundles`（先备份）。
 
 **它是一个组合包（bundle），不是一个裸依赖**。`package.json` 声明 `dsh.bundle.patch: "./cordis.patch.yml"`，app-boot 在组合 loader 树时按 `dsh.profile.bundles` 的顺序逐个应用每个组合包自己的补丁层，所以**插入 loader 条目的是包自带的 `cordis.patch.yml`**，profile 只负责"选中"它。这个区别是可观察的：应用侧栏的**插件**页把 profile 的**组合包**列在**已安装**分组下——只装进 `node_modules` 而没被选中的依赖**有意不列出**。所以旧版把 `- insert:` 手写进 profile patch 的做法既进不了插件页，又会在迁到 bundle 后重复插入同一 id；`install.mjs` 会先清掉那段遗留块再选中组合包。
